@@ -4,77 +4,192 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Liquid Glass Lab</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one full-bleed render, the glass voice button at its optical centre, a tuning tray docked at the bottom. */
+/* Layout: one full-bleed render, the glass voice button at its optical centre, a shadcn-style settings card docked at the bottom.
+   Tokens follow shadcn/ui's neutral theme; the card flips to the light set when the Clay scene is showing. */
 :root {
-  --ink: #050b1f;
-  --fg: #eef4ff;
-  --muted: #9bb0d8;
-  --line: rgba(190, 210, 255, 0.2);
-  --tray: rgba(12, 20, 44, 0.5);
-  --chip: rgba(255, 255, 255, 0.08);
-  --chip-on: rgba(255, 255, 255, 0.92);
-  --chip-on-fg: #0b1430;
-  --accent: #7fe3ff;
-  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0 / 0.72);
+  --card-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --muted: oklch(0.269 0 0 / 0.7);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --border: oklch(1 0 0 / 0.1);
+  --input: oklch(1 0 0 / 0.15);
+  --ring: oklch(0.556 0 0);
+  --radius: 0.625rem;
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.25), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+  --sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
   color-scheme: dark;
 }
 body[data-tone="light"] {
-  --fg: #2a1712; --muted: #6d4c43; --line: rgba(80, 40, 30, 0.18);
-  --tray: rgba(255, 240, 232, 0.45); --chip: rgba(60, 30, 20, 0.07);
-  --chip-on: #2a1712; --chip-on-fg: #fff3ec; --accent: #c2412b;
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0 / 0.72);
+  --card-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --muted: oklch(0.97 0 0 / 0.8);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.06);
+  color-scheme: light;
 }
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
-body { background: var(--ink); color: var(--fg); overflow: hidden; font-family: var(--display); }
+body {
+  background: var(--background); color: var(--foreground); overflow: hidden;
+  font-family: var(--sans); font-size: 14px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+}
 canvas#stage { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
 header {
   position: fixed; top: 0; left: 0; right: 0; pointer-events: none;
-  padding-top: calc(env(safe-area-inset-top, 0px) + 18px);
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 4px;
 }
-header h1 { margin: 0; font-size: clamp(20px, 3vw, 28px); font-weight: 700; letter-spacing: -0.01em; }
-header p { margin: 4px 0 0; font: 400 12px/1.5 var(--mono); color: var(--muted); max-width: 46ch; }
+header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.3; }
+header p { margin: 0; font-size: 13px; color: var(--muted-foreground); max-width: 44ch; }
+
+/* voice button (the glass itself is drawn in WebGL; this is the accessible hit target and its contents) */
 #rec {
   position: fixed; left: 0; top: 0; transform: translate(-50%, -50%);
   background: transparent; border: 0; padding: 0; margin: 0; cursor: pointer;
-  border-radius: 999px; color: var(--fg);
+  border-radius: 999px; color: var(--foreground);
   display: flex; align-items: center; justify-content: center; gap: 12px;
   -webkit-tap-highlight-color: transparent;
 }
-#rec:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
-#rec svg { width: 26px; height: 26px; flex: none; }
-#bars { display: flex; align-items: center; gap: 3px; height: 26px; }
-#bars i { display: block; width: 3px; border-radius: 2px; background: var(--fg); opacity: .9; height: 4px; }
-#clock { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; }
-#hint { position: fixed; left: 0; top: 0; transform: translate(-50%, 0); font: 400 12px var(--mono); color: var(--muted); pointer-events: none; white-space: nowrap; }
-.tray {
+#rec:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 60%, transparent); }
+#rec svg { width: 24px; height: 24px; flex: none; }
+#bars { display: flex; align-items: center; gap: 3px; height: 24px; }
+#bars i { display: block; width: 3px; border-radius: 2px; background: currentColor; opacity: .9; height: 4px; }
+#clock { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; }
+#hint {
+  position: fixed; left: 0; top: 0; transform: translate(-50%, 0); pointer-events: none; white-space: nowrap;
+  font-size: 12px; font-weight: 500; color: var(--muted-foreground);
+}
+
+/* Card */
+.card {
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
-  width: min(460px, calc(100% - 32px));
-  background: var(--tray); border: 1px solid var(--line); border-radius: 16px;
-  -webkit-backdrop-filter: blur(16px) saturate(150%); backdrop-filter: blur(16px) saturate(150%);
-  padding: 12px 14px; display: grid; gap: 10px;
+  width: min(420px, calc(100% - 32px));
+  background: var(--card); color: var(--card-foreground);
+  border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px);
+  box-shadow: var(--shadow-lg);
+  -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%);
+  display: grid; gap: 16px; padding: 16px;
 }
-.scenes { display: flex; flex-wrap: wrap; gap: 6px; }
-.scenes button {
-  font: 500 12px var(--mono); color: var(--fg); background: var(--chip);
-  border: 1px solid var(--line); border-radius: 999px; padding: 6px 11px; cursor: pointer;
+.card-header { display: flex; align-items: center; gap: 8px; }
+.card-title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; line-height: 1; }
+.card-header .spacer { flex: 1; }
+.card[data-collapsed="true"] .card-body { display: none; }
+.card-body { display: grid; gap: 16px; }
+
+/* Badge (outline) */
+.badge {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: 6px;
+  font: 500 11px var(--mono); font-variant-numeric: tabular-nums; color: var(--muted-foreground);
+  white-space: nowrap;
 }
-.scenes button[aria-checked="true"] { background: var(--chip-on); color: var(--chip-on-fg); border-color: transparent; }
-.scenes button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.sliders { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 16px; }
-.sliders label { display: grid; gap: 4px; font: 400 10.5px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; min-width: 0; }
-.sliders label span { display: flex; justify-content: space-between; gap: 6px; }
-.sliders output { color: var(--fg); font-variant-numeric: tabular-nums; }
-.sliders input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
-.meta { font: 400 10.5px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
-#nogl { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; font: 400 14px var(--mono); color: var(--muted); white-space: pre-wrap; }
+
+/* Button */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 32px; padding: 0 12px; border-radius: calc(var(--radius) - 2px);
+  font: 500 13px var(--sans); white-space: nowrap; cursor: pointer;
+  border: 1px solid transparent; background: transparent; color: inherit;
+  transition: background-color .15s, color .15s, box-shadow .15s;
+}
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent); border-color: var(--ring); }
+.btn-ghost:hover { background: var(--accent); }
+.btn-outline { border-color: var(--input); background: color-mix(in oklch, var(--input) 30%, transparent); box-shadow: var(--shadow-sm); }
+.btn-outline:hover { background: var(--accent); }
+.btn-icon { width: 32px; padding: 0; }
+.btn-icon svg { transition: transform .2s; }
+.card[data-collapsed="true"] .btn-icon svg { transform: rotate(180deg); }
+
+/* Tabs */
+.tabs-list {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  height: 36px; padding: 3px; border-radius: var(--radius);
+  background: var(--muted); color: var(--muted-foreground);
+}
+.tabs-trigger {
+  min-width: 0; border: 1px solid transparent; border-radius: calc(var(--radius) - 2px);
+  background: transparent; color: inherit; cursor: pointer;
+  font: 500 13px var(--sans); padding: 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: color .15s, background-color .15s, box-shadow .15s;
+}
+.tabs-trigger:hover { color: var(--foreground); }
+.tabs-trigger[aria-selected="true"] {
+  background: var(--background); color: var(--foreground); box-shadow: var(--shadow-sm);
+  border-color: var(--input);
+}
+body[data-tone="light"] .tabs-trigger[aria-selected="true"] { background: oklch(1 0 0); border-color: transparent; }
+.tabs-trigger:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent); border-color: var(--ring); }
+
+/* Separator */
+.separator { height: 1px; background: var(--border); margin: 0 -16px; }
+
+/* Field + Slider */
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; }
+.field { display: grid; gap: 10px; min-width: 0; }
+.field-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.label { font-size: 13px; font-weight: 500; line-height: 1; user-select: none; }
+.value { font: 400 12px var(--mono); color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.slider {
+  --p: 50%;
+  -webkit-appearance: none; appearance: none; width: 100%; height: 16px; margin: 0;
+  background: transparent; cursor: pointer; touch-action: pan-y;
+}
+.slider::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 999px;
+  background: linear-gradient(to right, var(--primary) var(--p), color-mix(in oklch, var(--primary) 20%, transparent) var(--p));
+}
+.slider::-moz-range-track { height: 6px; border-radius: 999px; background: color-mix(in oklch, var(--primary) 20%, transparent); }
+.slider::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--primary); }
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -5px;
+  border-radius: 999px; background: oklch(1 0 0); border: 1px solid var(--primary);
+  box-shadow: var(--shadow-sm); transition: box-shadow .15s;
+}
+.slider::-moz-range-thumb {
+  width: 14px; height: 14px; border-radius: 999px; background: oklch(1 0 0);
+  border: 1px solid var(--primary); box-shadow: var(--shadow-sm);
+}
+.slider:hover::-webkit-slider-thumb { box-shadow: 0 0 0 4px color-mix(in oklch, var(--ring) 40%, transparent); }
+.slider:focus-visible { outline: none; }
+.slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px color-mix(in oklch, var(--ring) 55%, transparent); }
+.slider:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px color-mix(in oklch, var(--ring) 55%, transparent); }
+
+.card-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.muted { font-size: 12px; color: var(--muted-foreground); }
+
+#nogl { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted-foreground); white-space: pre-wrap; }
 [hidden] { display: none !important; }
-@media (max-width: 480px) { .sliders { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 420px) {
+  .card { padding: 14px; gap: 14px; }
+  .separator { margin: 0 -14px; }
+  .tabs-trigger { font-size: 12px; padding: 0 2px; }
+  .fields { gap: 14px 16px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
@@ -96,24 +211,42 @@ header p { margin: 4px 0 0; font: 400 12px/1.5 var(--mono); color: var(--muted);
 </button>
 <div id="hint">Tap to talk</div>
 
-<div class="tray">
-  <div class="scenes" role="radiogroup" aria-label="Background scene">
-    <button type="button" role="radio" data-scene="0" aria-checked="true">Ocean</button>
-    <button type="button" role="radio" data-scene="1" aria-checked="false">Chrome</button>
-    <button type="button" role="radio" data-scene="2" aria-checked="false">Clay</button>
-    <button type="button" role="radio" data-scene="3" aria-checked="false">Satin</button>
-    <button type="button" role="radio" data-scene="4" aria-checked="false">Neon</button>
+<section class="card" id="panel" data-collapsed="false" aria-label="Settings">
+  <div class="card-header">
+    <span class="card-title">Settings</span>
+    <span class="badge" id="meta">—</span>
+    <span class="spacer"></span>
+    <button class="btn btn-ghost btn-icon" id="collapse" type="button" aria-expanded="true" aria-controls="panelBody" aria-label="Hide settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+    </button>
   </div>
-  <div class="sliders" role="group" aria-label="Glass and render settings">
-    <label for="refr"><span>Refraction <output id="refrO">30</output></span><input id="refr" type="range" min="0" max="60" step="1" value="30"></label>
-    <label for="blur"><span>Frost <output id="blurO">0.5</output></span><input id="blur" type="range" min="0" max="6" step="0.25" value="0.5"></label>
-    <label for="chroma"><span>Dispersion <output id="chromaO">1.5</output></span><input id="chroma" type="range" min="0" max="6" step="0.5" value="1.5"></label>
-    <label for="bend"><span>Bend <output id="bendO">0.8</output></span><input id="bend" type="range" min="0" max="1.2" step="0.05" value="0.8"></label>
-    <label for="bloom"><span>Bloom <output id="bloomO">1</output></span><input id="bloom" type="range" min="0" max="2" step="0.1" value="1"></label>
-    <label for="expo"><span>Exposure <output id="expoO">1</output></span><input id="expo" type="range" min="0.5" max="1.8" step="0.05" value="1"></label>
+  <div class="card-body" id="panelBody">
+    <div class="tabs-list scenes" role="tablist" aria-label="Background scene">
+      <button class="tabs-trigger" type="button" role="tab" data-scene="0" aria-selected="true" tabindex="0">Ocean</button>
+      <button class="tabs-trigger" type="button" role="tab" data-scene="1" aria-selected="false" tabindex="-1">Chrome</button>
+      <button class="tabs-trigger" type="button" role="tab" data-scene="2" aria-selected="false" tabindex="-1">Clay</button>
+      <button class="tabs-trigger" type="button" role="tab" data-scene="3" aria-selected="false" tabindex="-1">Satin</button>
+      <button class="tabs-trigger" type="button" role="tab" data-scene="4" aria-selected="false" tabindex="-1">Neon</button>
+    </div>
+    <div class="separator" role="none"></div>
+    <div class="fields" role="group" aria-label="Glass and render settings">
+      <div class="field"><div class="field-row"><label class="label" for="refr">Refraction</label><output class="value" id="refrO" for="refr">30</output></div><input class="slider" id="refr" type="range" min="0" max="60" step="1" value="30"></div>
+      <div class="field"><div class="field-row"><label class="label" for="blur">Frost</label><output class="value" id="blurO" for="blur">0.5</output></div><input class="slider" id="blur" type="range" min="0" max="6" step="0.25" value="0.5"></div>
+      <div class="field"><div class="field-row"><label class="label" for="chroma">Dispersion</label><output class="value" id="chromaO" for="chroma">1.5</output></div><input class="slider" id="chroma" type="range" min="0" max="6" step="0.5" value="1.5"></div>
+      <div class="field"><div class="field-row"><label class="label" for="bend">Bend</label><output class="value" id="bendO" for="bend">0.8</output></div><input class="slider" id="bend" type="range" min="0" max="1.2" step="0.05" value="0.8"></div>
+      <div class="field"><div class="field-row"><label class="label" for="bloom">Bloom</label><output class="value" id="bloomO" for="bloom">1</output></div><input class="slider" id="bloom" type="range" min="0" max="2" step="0.1" value="1"></div>
+      <div class="field"><div class="field-row"><label class="label" for="expo">Exposure</label><output class="value" id="expoO" for="expo">1</output></div><input class="slider" id="expo" type="range" min="0.5" max="1.8" step="0.05" value="1"></div>
+    </div>
+    <div class="separator" role="none"></div>
+    <div class="card-footer">
+      <span class="muted">Render scale adapts to your device.</span>
+      <button class="btn btn-outline" id="reset" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>
+        Reset
+      </button>
+    </div>
   </div>
-  <div class="meta" id="meta">Render —</div>
-</div>
+</section>
 <div id="nogl" hidden>This demo needs WebGL 2, which this browser has turned off.</div>
 
 <script>
@@ -494,7 +627,7 @@ function allocScene(){
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  meta.textContent = `Render ${sw}×${sh}`;
+  meta.textContent = `${sw}×${sh}`;
 }
 const meta = document.getElementById('meta');
 function resize(){
@@ -506,17 +639,30 @@ function resize(){
 addEventListener('resize', resize); resize();
 
 const params = {};
-['refr','blur','chroma','bend','bloom','expo'].forEach(id => {
+const sliders = ['refr','blur','chroma','bend','bloom','expo'].map(id => {
   const el = document.getElementById(id), out = document.getElementById(id + 'O');
-  const set = () => { params[id] = parseFloat(el.value); out.textContent = el.value; };
+  const def = el.value;
+  const set = () => {
+    params[id] = parseFloat(el.value); out.textContent = el.value;
+    el.style.setProperty('--p', ((el.value - el.min)/(el.max - el.min)*100) + '%');
+  };
   el.addEventListener('input', set); set();
+  return { el, def, set };
+});
+document.getElementById('reset').addEventListener('click', () => sliders.forEach(s => { s.el.value = s.def; s.set(); }));
+const panel = document.getElementById('panel'), collapseBtn = document.getElementById('collapse');
+collapseBtn.addEventListener('click', () => {
+  const open = panel.dataset.collapsed === 'true';
+  panel.dataset.collapsed = String(!open);
+  collapseBtn.setAttribute('aria-expanded', String(open));
+  collapseBtn.setAttribute('aria-label', open ? 'Hide settings' : 'Show settings');
 });
 
 let scene = 0;
 const chips = [...document.querySelectorAll('.scenes button')];
 function pickScene(i){
   scene = i;
-  chips.forEach(c => c.setAttribute('aria-checked', String(+c.dataset.scene === i)));
+  chips.forEach(c => { const on = +c.dataset.scene === i; c.setAttribute('aria-selected', String(on)); c.tabIndex = on ? 0 : -1; });
   document.body.dataset.tone = i === 2 ? 'light' : 'dark';
 }
 chips.forEach((c, idx) => {
